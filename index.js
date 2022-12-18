@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require("dotenv").config();
 
 app.use(cors());  
@@ -14,16 +14,32 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 async function run(){
   try{
-    const selectorsCollection = client.db("TaskForm").collection("selectors");
+    const sectorsCollection = client.db("TaskForm").collection("sectors");
+    const savedDataCollection = client.db("TaskForm").collection("savedData");
 
+    app.get('/getSectors', async(req, res) => {
+      const query = {};
+      const cursor = sectorsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
 
-    app.get('/selector', async(req, res) => {
-      const doc = {
-        selector: "Manufacturing",
-      };
-      const result = await selectorsCollection.insertOne(doc);
-      res.send(result)
+    app.post('/saveData', async(req, res) => {
+      const data = req.body;
+
+      //check if the user already in database or not
+      const name = data.name;
+      const query = {name:name};
+      const user = await savedDataCollection.findOne(query);
+      if(user){
+        return res.status(409).send({message: "This name has already taken"})
+      }
+
+      const result = await savedDataCollection.insertOne(data);
+      res.send(result);
     })
+
+
 
   }
   finally{
